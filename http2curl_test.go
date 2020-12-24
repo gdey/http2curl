@@ -118,3 +118,48 @@ func ExampleGetCurlCommand_other() {
 	fmt.Println(command)
 	// Output: curl -X 'PUT' -d '{"hello":"world","answer":42}' -H 'Content-Type: application/json' -H 'X-Auth-Token: private-token' 'http://www.example.com/abc/def.ghi?jlk=mno&pqr=stu'
 }
+
+// fakeJar is the simplest of cookies jars, it just checks the host
+// name and returns any cookes associated with that host name.
+// NO OTHER CHECKS are done.
+type fakeJar map[string][]*http.Cookie
+
+func (jar fakeJar) SetCookies(*url.URL, []*http.Cookie) {} // noop as we are not using it just here for the interface
+func (jar fakeJar) Cookies(u *url.URL) []*http.Cookie {
+	if u == nil {
+		return nil
+	}
+	return jar[u.Hostname()]
+}
+
+func ExampleCommand_with_cookies() {
+	jar := fakeJar{
+		"www.example.com": []*http.Cookie{
+			{
+				Name:  "cookie1",
+				Value: "value1",
+			},
+			{
+				Name:  "cookie2",
+				Value: "value2",
+			},
+		},
+	}
+	uri := "http://www.example.com/abc/def.ghi?jlk=mno&pqr=stu"
+	payload := new(bytes.Buffer)
+	payload.Write([]byte(`{"hello":"world","answer":42}`))
+	req, err := http.NewRequest("PUT", uri, payload)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("X-Auth-Token", "private-token")
+	req.Header.Set("Content-Type", "application/json")
+
+	command, err := Command(req, jar)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(command)
+	// Output: curl -X 'PUT' -d '{"hello":"world","answer":42}' -H 'Content-Type: application/json' -H 'Cookie: cookie1=value1; cookie2=value2' -H 'X-Auth-Token: private-token' 'http://www.example.com/abc/def.ghi?jlk=mno&pqr=stu'
+
+}

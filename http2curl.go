@@ -35,7 +35,10 @@ func bashEscape(str string) string {
 func (nopCloser) Close() error { return nil }
 
 // GetCurlCommand returns a CurlCommand corresponding to an http.Request
-func GetCurlCommand(req *http.Request) (*CurlCommand, error) {
+func GetCurlCommand(req *http.Request) (*CurlCommand, error) { return Command(req, nil) }
+
+// Command returns a CurlCommand corresponding to the http.Request and http.CookieJar
+func Command(req *http.Request, jar http.CookieJar) (*CurlCommand, error) {
 	command := CurlCommand{}
 
 	command.append("curl")
@@ -55,6 +58,15 @@ func GetCurlCommand(req *http.Request) (*CurlCommand, error) {
 	}
 
 	var keys []string
+
+	// Lets add our cookes to the mix
+	if jar != nil {
+		// make a copy
+		req = req.Clone(req.Context())
+		for _, cookie := range jar.Cookies(req.URL) {
+			req.AddCookie(cookie)
+		}
+	}
 
 	for k := range req.Header {
 		keys = append(keys, k)
