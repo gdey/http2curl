@@ -51,7 +51,7 @@ func Command(req *http.Request, jar http.CookieJar) (*CurlCommand, error) {
 			return nil, err
 		}
 		req.Body = nopCloser{bytes.NewBuffer(body)}
-		if len(string(body)) > 0 {
+		if len(body) > 0 {
 			bodyEscaped := bashEscape(string(body))
 			command.append("-d", bodyEscaped)
 		}
